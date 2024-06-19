@@ -1,0 +1,417 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Badge {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  description String
+  image       String
+  name        String
+  users       User[] @relation("UserBadge")
+
+  @@map("badges")
+}
+
+model Blackboard {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  authors    User[]          @relation("BlackboardAuthor")
+  coverImage String?
+  school     School          @relation("SchoolBlackboard", fields: [schoolId], references: [id])
+  schoolId   String          @db.Uuid
+  tags       BlackboardTag[] @relation("BlackboardBlackboardTag")
+  targets    User[]          @relation("BlackboardTarget")
+  text       String?
+  title      String
+
+  @@map("blackboards")
+}
+
+model BlackboardTag {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  blackboards Blackboard[] @relation("BlackboardBlackboardTag")
+  name        String       @unique
+
+  @@map("blackboard_tags")
+}
+
+model Chat {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  activities ChatActivity[] @relation("ChatActivity")
+  avatar     String?
+  clubs      Club[]         @relation("ClubChat")
+  courses    Course[]       @relation("CourseChat")
+  name       String
+  targets    UserChat[]     @relation("ChatTarget")
+  type       ChatType
+
+  @@map("chats")
+}
+
+model ChatActivity {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chat   Chat   @relation("ChatActivity", fields: [chatId], references: [id])
+  chatId String @db.Uuid
+
+  executor   User   @relation("UserChatActivity", fields: [executorId], references: [id])
+  executorId String @db.Uuid
+
+  readBy User[] @relation("ReadChatActivity")
+
+  answerTo   ChatActivity? @relation("ChatActivityAnswer", fields: [answerToId], references: [id])
+  answerToId String?       @db.Uuid
+
+  answeredBy ChatActivity[] @relation("ChatActivityAnswer")
+
+  type            ChatActivityType
+  activityContent Json
+
+  starred Boolean @default(false)
+
+  @@map("activities")
+}
+
+model Class {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courses        Course[] @relation("ClassCourse")
+  grade          Grade    @relation("ClassGrade", fields: [gradeId], references: [id])
+  gradeId        String   @db.Uuid
+  members        User[]   @relation("ClassMember")
+  school         School   @relation("ClassSchool", fields: [schoolId], references: [id])
+  schoolId       String   @db.Uuid
+  specifiedGrade String?
+
+  @@map("classes")
+}
+
+model Club {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  avatar       String?
+  chat         Chat?     @relation("ClubChat", fields: [chatId], references: [id])
+  chatId       String?   @db.Uuid
+  coverImage   String?
+  description  String?
+  events       Event[]   @relation("ClubEvent")
+  leaders      User[]    @relation("ClubLeader")
+  location     String?
+  meetingDay   Day?
+  meetingTime  String?
+  members      User[]    @relation("ClubMember")
+  name         String
+  requirements Json[]
+  school       School    @relation("ClubSchool", fields: [schoolId], references: [id])
+  schoolId     String    @db.Uuid
+  tags         ClubTag[] @relation("ClubClubTag")
+
+  @@map("clubs")
+}
+
+model ClubTag {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clubs Club[] @relation("ClubClubTag")
+  name  String
+
+  @@map("club_tags")
+}
+
+model Course {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chat      Chat?   @relation("CourseChat", fields: [chatId], references: [id])
+  chatId    String? @db.Uuid
+  classes   Class[] @relation("ClassCourse")
+  members   User[]  @relation("CourseMember")
+  name      String
+  subject   Subject @relation("CourseSubject", fields: [subjectId], references: [id])
+  subjectId String  @db.Uuid
+  teacher   User    @relation("CourseTeacher", fields: [teacherId], references: [id])
+  teacherId String  @db.Uuid
+
+  @@map("courses")
+}
+
+model Event {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clubs       Club[]        @relation("ClubEvent")
+  description String?
+  endDate     DateTime
+  host        String
+  information Json[]
+  location    String?
+  school      School        @relation("EventSchool", fields: [schoolId], references: [id])
+  schoolId    String        @db.Uuid
+  startDate   DateTime
+  subscribers User[]        @relation("EventSubscriber")
+  tickets     EventTicket[] @relation("EventEventTicket")
+  title       String
+
+  @@map("events")
+}
+
+model EventTicket {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  buyer    User     @relation("EventTicketBuyer", fields: [buyerId], references: [id])
+  buyerId  String   @db.Uuid
+  event    Event    @relation("EventEventTicket", fields: [eventId], references: [id])
+  eventId  String   @db.Uuid
+  price    Int
+  saleDate DateTime
+
+  @@map("event_tickets")
+}
+
+model Grade {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  classes  Class[]    @relation("ClassGrade")
+  level    GradeLevel
+  school   School     @relation("SchoolGrade", fields: [schoolId], references: [id])
+  schoolId String     @db.Uuid
+
+  @@map("grades")
+}
+
+model School {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  blackboards    Blackboard[] @relation("SchoolBlackboard")
+  classes        Class[]      @relation("ClassSchool")
+  clubs          Club[]       @relation("ClubSchool")
+  events         Event[]      @relation("EventSchool")
+  grades         Grade[]      @relation("SchoolGrade")
+  members        User[]       @relation("SchoolMember")
+  name           String       @unique
+  setupAccount   SetupAccount @relation("SchoolSetupAccount", fields: [setupAccountId], references: [id])
+  setupAccountId String       @unique @db.Uuid
+  subjects       Subject[]    @relation("SubjectSchool")
+
+  @@map("schools")
+}
+
+model SetupAccount {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school     School? @relation("SchoolSetupAccount")
+  schoolId   String? @db.Uuid
+  schoolName String  @unique
+
+  @@map("setup_accounts")
+}
+
+model Subject {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courses   Course[]    @relation("CourseSubject")
+  school    School      @relation("SubjectSchool", fields: [schoolId], references: [id])
+  schoolId  String      @db.Uuid
+  shortName String
+  type      SubjectType @unique
+
+  @@map("subjects")
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  avatar                String?
+  badges                Badge[]        @relation("UserBadge")
+  blackboards           Blackboard[]   @relation("BlackboardAuthor")
+  blackboardsReceived   Blackboard[]   @relation("BlackboardTarget")
+  birthday              String?
+  chatActivitiesCreated ChatActivity[] @relation("UserChatActivity")
+  classes               Class[]        @relation("ClassMember")
+  clubs                 Club[]         @relation("ClubMember")
+  clubsAsLeader         Club[]         @relation("ClubLeader")
+  courses               Course[]       @relation("CourseMember")
+  coursesAsTeacher      Course[]       @relation("CourseTeacher")
+  events                Event[]        @relation("EventSubscriber")
+  eventTickets          EventTicket[]  @relation("EventTicketBuyer")
+  firstName             String
+  lastName              String
+  readActivities        ChatActivity[] @relation("ReadChatActivity")
+  schools               School[]       @relation("SchoolMember")
+  type                  UserType
+  userAccount           UserAccount    @relation("UserUserAccount", fields: [userAccountId], references: [id])
+  userAccountId         String         @unique @db.Uuid
+  userChats             UserChat[]     @relation("UserUserChat")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  expiresAt     DateTime
+  token         String      @unique
+  userAccount   UserAccount @relation("RefreshTokenUser", fields: [userAccountId], references: [id])
+  userAccountId String      @db.Uuid
+
+  @@map("refresh_tokens")
+}
+
+model UserAccount {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  email    String? @unique
+  password String
+  user     User?   @relation("UserUserAccount")
+  userId   String? @db.Uuid
+  username String  @unique
+
+  refreshTokens RefreshToken[] @relation("RefreshTokenUser")
+
+  @@map("user_accounts")
+}
+
+model UserChat {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chat   Chat    @relation("ChatTarget", fields: [chatId], references: [id])
+  chatId String  @db.Uuid
+  hidden Boolean @default(false)
+  pinned Boolean @default(false)
+  read   Boolean @default(true)
+  user   User    @relation("UserUserChat", fields: [userId], references: [id])
+  userId String  @db.Uuid
+
+  @@map("user_chats")
+}
+
+enum Day {
+  Monday
+  Tuesday
+  Wednesday
+  Thursday
+  Friday
+  Saturday
+  Sunday
+}
+
+enum GradeLevel {
+  G5
+  G6
+  G7
+  G8
+  G9
+  G10
+  G11
+  G12
+}
+
+enum SubjectType {
+  ART
+  BIOLOGY
+  CHEMISTRY
+  COMPUTER_SCIENCE
+  ECONOMICS
+  ENGLISH
+  ETHICS
+  FRENCH
+  GEOGRAPHY
+  GERMAN
+  HISTORY
+  IMP
+  ITALIAN
+  LATIN
+  MATHS
+  MUSIC
+  NWT
+  PHYSICS
+  POLITICS
+  RELIGION
+  SPANISH
+  SPORT
+}
+
+enum UserType {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum ChatActivityType {
+  MESSAGE_SEND
+  MESSAGE_EDIT
+  MESSAGE_DELETE
+  MESSAGE_ANSWER
+  ACTIVITY_STAR
+  ACTIVITY_UNSTAR
+  POLL_SEND
+  POLL_EDIT
+  POLL_DELETE
+  POLL_VOTE
+  POLL_UNVOTE
+  POLL_CLOSE
+  POLL_REOPEN
+  POLL_RESULT
+  CHAT_TARGET_ADD
+  CHAT_TARGET_REMOVE
+  CHAT_COURSE_ADD
+  CHAT_COURSE_REMOVE
+  CHAT_CLUB_ADD
+  CHAT_CLUB_REMOVE
+  CHAT_NAME_CHANGE
+
+  CHAT_AVATAR_CHANGE
+}
+
+enum ChatType {
+  GROUP
+  PRIVATE
+  COURSE
+}
